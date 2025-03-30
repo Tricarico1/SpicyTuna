@@ -24,7 +24,7 @@ if response.status_code == 200:
         parts = line.split()
         
         # Ensure the line has the expected number of parts
-        if len(parts) >= 14:  # Adjust this number based on the actual number of columns
+        if len(parts) >= 19:  # Adjust this number based on the actual number of columns
             entry = {
                 "year": parts[0],
                 "month": parts[1],
@@ -37,10 +37,14 @@ if response.status_code == 200:
                 "wave_height": parts[8],
                 "dominant_wave_period": parts[9],
                 "average_wave_period": parts[10],
-                "pressure": parts[11],
-                "air_temperature": parts[12],
-                "water_temperature": parts[13]
-                # Add more fields as needed
+                "mean_wave_direction": parts[11],
+                "pressure": parts[12],
+                "air_temperature": parts[13],
+                "water_temperature": parts[14],
+                "dew_point": parts[15],
+                "visibility": parts[16],
+                "pressure_tendency": parts[17],
+                "tide": parts[18]
             }
             data.append(entry)
     
