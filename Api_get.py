@@ -1,66 +1,61 @@
-import requests
-import json
 from datetime import datetime
+import requests
+from endpoints import spectral_data, realtime_data, derived_data, adcp_data
+from delete import cleanup_data_files
 
-# Define the URL
-url = "https://www.ndbc.noaa.gov/data/realtime2/41056.txt"
+# Define the station IDs to monitor
+STATION_IDS = ["41056"]  
 
-# Make the API call
-response = requests.get(url)
-
-# Check if the request was successful
-if response.status_code == 200:
-    # Print the raw response text for debugging
-    print("Response Text:")
-    print(response.text)  # Add this line to see the raw data
-
-    # Convert the text data to a list of lines
-    lines = response.text.splitlines()
-    
-    # Process the lines to create a list of dictionaries
-    data = []
-    for line in lines:
-        # Split the line by spaces
-        parts = line.split()
+def download_and_save_data(url, endpoint_name, station_id):
+    """Download data from URL and save to file"""
+    response = requests.get(url)
+    if response.status_code == 200:
+        current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        filename = f"data_{station_id}_{endpoint_name}_{current_time}.txt"
         
-        # Ensure the line has the expected number of parts
-        if len(parts) >= 19:  # Adjust this number based on the actual number of columns
-            entry = {
-                "year": parts[0],
-                "month": parts[1],
-                "day": parts[2],
-                "hour": parts[3],
-                "minute": parts[4],
-                "wind_direction": parts[5],
-                "wind_speed": parts[6],
-                "gust": parts[7],
-                "wave_height": parts[8],
-                "dominant_wave_period": parts[9],
-                "average_wave_period": parts[10],
-                "mean_wave_direction": parts[11],
-                "pressure": parts[12],
-                "air_temperature": parts[13],
-                "water_temperature": parts[14],
-                "dew_point": parts[15],
-                "visibility": parts[16],
-                "pressure_tendency": parts[17],
-                "tide": parts[18]
-            }
-            data.append(entry)
+        with open(filename, 'w') as file:
+            file.write(response.text)
+        
+        print(f"Data saved to {filename}")
+        return response.text.splitlines()
+    else:
+        print(f"Failed to retrieve data from {endpoint_name} for station {station_id}: {response.status_code}")
+        return None
+
+def main():
+    # Get endpoint configurations
+    endpoint_types = [
+        realtime_data.get_realtime_data,
+        spectral_data.get_spectral_data,
+        derived_data.get_derived_data,
+        adcp_data.get_adcp_data
+    ]
     
-    # Get the current date and time for the filename
-    current_time = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    json_filename = f"json-{current_time}.json"
-    txt_filename = f"data-{current_time}.txt"
-    
-    # Save the data as JSON
-    with open(json_filename, 'w') as json_file:
-        json.dump(data, json_file, indent=4)
-    
-    # Save the raw text data
-    with open(txt_filename, 'w') as txt_file:
-        txt_file.write(response.text)
-    
-    print(f"Data saved to {json_filename} and {txt_filename}")
-else:
-    print(f"Failed to retrieve data: {response.status_code}")
+    # Process each station
+    for station_id in STATION_IDS:
+        print(f"\nProcessing station {station_id}:")
+        
+        # Process each endpoint type for this station
+        for get_endpoint in endpoint_types:
+            endpoint = get_endpoint(station_id)
+            print(f"\nProcessing {endpoint['name']} endpoint:")
+            lines = download_and_save_data(endpoint['url'], endpoint['name'], station_id)
+            
+            if lines:
+                if endpoint['name'] == 'realtime':
+                    data_points = realtime_data.process_realtime_data(lines)
+                    realtime_data.calculate_realtime_statistics(data_points)
+                elif endpoint['name'] == 'spectral':
+                    data_points = spectral_data.process_spectral_data(lines)
+                    spectral_data.calculate_spectral_statistics(data_points)
+                elif endpoint['name'] == 'derived':
+                    data_points = derived_data.process_derived_data(lines)
+                    derived_data.calculate_derived_statistics(data_points)
+                elif endpoint['name'] == 'adcp':
+                    data_points = adcp_data.process_adcp_data(lines)
+                    adcp_data.calculate_adcp_statistics(data_points)
+
+if __name__ == "__main__":
+    # Uncomment the next line to delete old data files before running
+    cleanup_data_files()
+    main()
