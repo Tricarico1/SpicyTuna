@@ -1,0 +1,144 @@
+{
+  "Aguadilla": {
+    "2025-04-06": {
+      "day_rating": "GOOD",
+      "sunrise": "10:19",
+      "sunset": "22:43",
+      "good_hours_count": 10,
+      "hourly": [
+        {
+          "time": "11:00",
+          "rating": "GOOD",
+          "wave_height_ft": 2.7,
+          "wind_speed_mph": 3.8,
+          "wind_gust_mph": 9.4,
+          "wave_period_sec": 6.1,
+          "precipitation_probability": 1.0,
+          "visibility": 24140.0,
+          "rain": 0.0
+        },
+        {
+          "time": "12:00",
+          "rating": "GOOD",
+          "wave_height_ft": 2.6,
+          "wind_speed_mph": 4.0,
+          "wind_gust_mph": 9.8,
+          "wave_period_sec": 6.1,
+          "precipitation_probability": 0.0,
+          "visibility": 24140.0,
+          "rain": 0.0
+        },
+        {
+          "time": "13:00",
+          "rating": "GOOD",
+          "wave_height_ft": 2.6,
+          "wind_speed_mph": 4.4,
+          "wind_gust_mph": 10.5,
+          "wave_period_sec": 6.1,
+          "precipitation_probability": 0.0,
+          "visibility": 24140.0,
+          "rain": 0.0
+        },
+        {
+          "time": "14:00",
+          "rating": "GOOD",
+          "wave_height_ft": 2.6,
+          "wind_speed_mph": 4.9,
+          "wind_gust_mph": 11.2,
+          "wave_period_sec": 6.1,
+          "precipitation_probability": 1.0,
+          "visibility": 24140.0,
+          "rain": 0.0
+        },
+        {
+          "time": "15:00",
+          "rating": "GOOD",
+          "wave_height_ft": 2.6,
+          "wind_speed_mph": 4.3,
+          "wind_gust_mph": 11.9,
+          "wave_period_sec": 6.0,
+          "precipitation_probability": 2.0,
+          "visibility": 24140.0,
+          "rain": 0.0
+        },
+        {
+          "time": "16:00",
+          "rating": "GOOD",
+          "wave_height_ft": 2.7,
+          "wind_speed_mph": 1.4,
+          "wind_gust_mph": 14.1,
+          "wave_period_sec": 5.9,
+          "precipitation_probability": 3.0,
+          "visibility": 21300.0,
+          "rain": 0.0
+        },
+        {
+          "time": "17:00",
+          "rating": "GOOD",
+          "wave_height_ft": 2.8,
+          "wind_speed_mph": 2.9,
+          "wind_gust_mph": 16.6,
+          "wave_period_sec": 5.8,
+          "precipitation_probability": 5.0,
+          "visibility": 18480.0,
+          "rain": 0.0
+        },
+        {
+          "time": "18:00",
+          "rating": "GOOD",
+          "wave_height_ft": 2.9,
+          "wind_speed_mph": 5.4,
+          "wind_gust_mph": 18.8,
+          "wave_period_sec": 5.7,
+          "precipitation_probability": 7.0,
+          "visibility": 15640.0,
+          "rain": 0.0
+        },
+        {
+          "time": "19:00",
+          "rating": "GOOD",
+          "wave_height_ft": 3.0,
+          "wind_speed_mph": 4.5,
+          "wind_gust_mph": 17.4,
+          "wave_period_sec": 5.6,
+          "precipitation_probability": 9.0,
+          "visibility": 15860.0,
+          "rain": 0.0
+        },
+        {
+          "time": "20:00",
+          "rating": "GOOD",
+          "wave_height_ft": 3.0,
+          "wind_speed_mph": 2.1,
+          "wind_gust_mph": 15.9,
+          "wave_period_sec": 5.6,
+          "precipitation_probability": 11.0,
+          "visibility": 16080.0,
+          "rain": 0.0
+        },
+        {
+          "time": "21:00",
+          "rating": "MEDIOCRE",
+          "wave_height_ft": 3.0,
+          "wind_speed_mph": 0.9,
+          "wind_gust_mph": 14.5,
+          "wave_period_sec": 5.5,
+          "precipitation_probability": 12.0,
+          "visibility": 16300.0,
+          "rain": 0.0
+        },
+        {
+          "time": "22:00",
+          "rating": "MEDIOCRE",
+          "wave_height_ft": 3.1,
+          "wind_speed_mph": 1.7,
+          "wind_gust_mph": 12.5,
+          "wave_period_sec": 5.4,
+          "precipitation_probability": 14.0,
+          "visibility": 18380.0,
+          "rain": 0.0
+        }
+      ]
+    }
+  }
+}

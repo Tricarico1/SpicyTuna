@@ -1,5 +1,13 @@
 #YY  MM DD hh mm WVHT  SwH  SwP  WWH  WWP SwD WWD  STEEPNESS  APD MWD
 #yr  mo dy hr mn    m    m  sec    m  sec  -  degT     -      sec degT
+2025 03 30 22 00  1.6   MM   MM   MM   MM  MM  MM    AVERAGE   MM  62
+2025 03 30 21 00  1.6   MM   MM   MM   MM  MM  MM    AVERAGE   MM  59
+2025 03 30 20 00  1.7   MM   MM   MM   MM  MM  MM    AVERAGE   MM  64
+2025 03 30 19 00  1.7   MM   MM   MM   MM  MM  MM    AVERAGE   MM  68
+2025 03 30 18 00  1.7   MM   MM   MM   MM  MM  MM    AVERAGE   MM  62
+2025 03 30 17 00  1.7   MM   MM   MM   MM  MM  MM VERY_STEEP   MM  66
+2025 03 30 16 00  1.6   MM   MM   MM   MM  MM  MM    AVERAGE   MM  63
+2025 03 30 15 00  1.7   MM   MM   MM   MM  MM  MM    AVERAGE   MM  57
 2025 03 30 14 00  1.6   MM   MM   MM   MM  MM  MM    AVERAGE   MM  63
 2025 03 30 13 00  1.7   MM   MM   MM   MM  MM  MM    AVERAGE   MM  56
 2025 03 30 12 00  1.7   MM   MM   MM   MM  MM  MM    AVERAGE   MM  52
