@@ -1,0 +1,22 @@
+# Set your account ID and region explicitly
+export AWS_ACCOUNT_ID=805358684705
+export AWS_REGION=us-east-1
+
+# Verify they're set correctly
+echo $AWS_ACCOUNT_ID
+echo $AWS_REGION
+
+# Create ECR repository (if it doesn't exist)
+aws ecr create-repository --repository-name boating-conditions || echo "Repository already exists"
+
+# Login to ECR
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 805358684705.dkr.ecr.us-east-1.amazonaws.com
+
+# Build the Docker image
+docker build -t boating-conditions .
+
+# Tag the image for ECR
+docker tag boating-conditions:latest 805358684705.dkr.ecr.us-east-1.amazonaws.com/boating-conditions:latest
+
+# Push to ECR
+docker push 805358684705.dkr.ecr.us-east-1.amazonaws.com/boating-conditions:latest

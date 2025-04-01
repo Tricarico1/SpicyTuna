@@ -1,0 +1,7 @@
+pandas
+numpy
+astral
+openmeteo_requests
+requests_cache
+retry_requests
+boto3 

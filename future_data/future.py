@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 import astral
 from astral.sun import sun
 from astral import LocationInfo
+import table_generation  # Import the table generation module
+import calculations  # Import the new calculations module
 
 # Import the modules (assuming they're in the same directory)
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
@@ -15,13 +17,7 @@ import meteo_weather
 import locations  # Import the locations module
 import delete  # Import the cleanup module
 
-# Constants for condition assessment
-GOOD_WAVE_HEIGHT_MAX_FT = 3.0  # in feet (converted from meters)
-GOOD_WIND_SPEED_MAX_MPH = 15.0  # in mph (converted from km/h)
-MEDIOCRE_WAVE_HEIGHT_MAX_FT = 4.0
-MEDIOCRE_WIND_SPEED_MAX_MPH = 18.0
-MEDIOCRE_WIND_GUST_MAX_MPH = 25.0
-MIN_GOOD_DURATION_HOURS = 3
+# Constants moved to calculations.py
 
 def get_location_info(loc_data):
     """Create an astral LocationInfo object from location data."""
@@ -38,13 +34,7 @@ def get_sunrise_sunset(date, location_info):
     s = sun(location_info.observer, date=date)
     return s['sunrise'], s['sunset']
 
-def convert_wave_height_to_feet(height_m):
-    """Convert wave height from meters to feet."""
-    return height_m * 3.28084
-
-def convert_wind_speed_to_mph(speed_kmh):
-    """Convert wind speed from km/h to mph."""
-    return speed_kmh * 0.621371
+# Unit conversion functions moved to calculations.py
 
 def fetch_weather_data(latitude, longitude):
     """Fetch weather data for the given location."""
@@ -148,45 +138,27 @@ def assess_hourly_conditions(marine_df, weather_df, location_info):
         date_str = day.strftime("%Y-%m-%d")
         sunrise, sunset = get_sunrise_sunset(day, location_info)
         
-        # Filter for daylight hours
-        daylight_data = day_data[(day_data['date'] >= sunrise) & (day_data['date'] <= sunset)]
-        
-        if daylight_data.empty:
-            continue
-            
-        # Assess each daylight hour
+        # Use all hours instead of filtering for daylight
+        # Assess each hour
         hourly_assessments = []
-        good_hours_count = 0
         
-        for _, hour_data in daylight_data.iterrows():
+        for _, hour_data in day_data.iterrows():
             hour_str = hour_data['date'].strftime("%H:%M")
             
             # Convert measurements to required units
-            wave_height_ft = convert_wave_height_to_feet(hour_data['wave_height'])
-            wind_speed_mph = convert_wind_speed_to_mph(hour_data['wind_speed_10m'])
-            wind_gust_mph = convert_wind_speed_to_mph(hour_data['wind_gusts_10m'])
+            wave_height_ft = calculations.convert_wave_height_to_feet(hour_data['wave_height'])
+            wind_speed_mph = calculations.convert_wind_speed_to_mph(hour_data['wind_speed_10m'])
+            wind_gust_mph = calculations.convert_wind_speed_to_mph(hour_data['wind_gusts_10m'])
             wave_period = hour_data['wave_period']
             
-            # Assess conditions
-            is_good = (
-                wave_height_ft < GOOD_WAVE_HEIGHT_MAX_FT and
-                wind_speed_mph < GOOD_WIND_SPEED_MAX_MPH and
-                wave_period >= 2 * hour_data['wave_height']
+            # Use the new function to assess conditions
+            rating = calculations.assess_hour_condition(
+                wave_height_ft, 
+                wind_speed_mph, 
+                wind_gust_mph, 
+                wave_period, 
+                hour_data['wave_height']
             )
-            
-            is_bad = (
-                wave_height_ft > MEDIOCRE_WAVE_HEIGHT_MAX_FT or
-                wind_speed_mph > MEDIOCRE_WIND_SPEED_MAX_MPH or
-                wind_gust_mph > MEDIOCRE_WIND_GUST_MAX_MPH
-            )
-            
-            if is_good:
-                rating = "GOOD"
-                good_hours_count += 1
-            elif not is_bad:
-                rating = "MEDIOCRE"
-            else:
-                rating = "BAD"
                 
             # Store hourly assessment
             hourly_assessments.append({
@@ -201,13 +173,8 @@ def assess_hourly_conditions(marine_df, weather_df, location_info):
                 "rain": hour_data.get('rain', 0)
             })
         
-        # Determine overall day rating
-        if good_hours_count >= MIN_GOOD_DURATION_HOURS:
-            day_rating = "GOOD"
-        elif all(assessment["rating"] == "BAD" for assessment in hourly_assessments):
-            day_rating = "BAD"
-        else:
-            day_rating = "MEDIOCRE"
+        # Determine overall day rating using the new function
+        day_rating, good_hours_count = calculations.determine_day_rating(hourly_assessments)
             
         # Store daily results with hourly assessments
         results[date_str] = {
@@ -237,24 +204,57 @@ def process_location(loc_data, location_index):
     # Return results
     return loc_data['name'], results
 
-def main():
-    # Clean up old JSON files
-    delete.cleanup_json_files()
-    
+def analyze_all_locations():
+    """Process all locations and return their boating conditions."""
     all_results = {}
-    good_days_results = {}
     
     # Process all locations
     for i, location in enumerate(locations.LOCATIONS):
         location_name, results = process_location(location, i)
         all_results[location_name] = results
-        
+    
+    return all_results
+
+def find_good_days(all_results):
+    """Filter the results to only include good days."""
+    good_days_results = {}
+    
+    for location_name, results in all_results.items():
         # Filter for good days only
-        good_days = {date: data for date, data in results.items() 
-                    if data['day_rating'] in ['GOOD', 'GREAT']}
+        good_days = {}
+        for date, data in results.items():
+            if data['day_rating'] in ['GOOD', 'GREAT']:
+                # Clone the data but only include hourly entries with GOOD ratings
+                good_day_data = data.copy()
+                good_hours = [hour for hour in data['hourly'] if hour['rating'] == 'GOOD']
+                good_day_data['hourly'] = good_hours
+                good_days[date] = good_day_data
         
         if good_days:
             good_days_results[location_name] = good_days
+    
+    return good_days_results
+
+def run_analysis():
+    """Run the full analysis and return all results and good days"""
+    # Get the forecast data for all locations
+    all_results = analyze_all_locations()
+    
+    # Filter for the good days
+    good_days_results = find_good_days(all_results)
+    
+    # Comment out or remove this line since print_summary isn't defined
+    # print_summary(all_results, good_days_results)
+    
+    return all_results, good_days_results
+
+def main():
+    # Clean up old JSON files
+    delete.cleanup_json_files()
+    
+    # Process all locations using the refactored function
+    all_results = analyze_all_locations()
+    good_days_results = find_good_days(all_results)
     
     # Output combined results
     with open("all_boating_conditions.json", 'w') as f:
@@ -263,6 +263,22 @@ def main():
     # Output only good days
     with open("good_boating_days.json", 'w') as f:
         json.dump(good_days_results, f, indent=2)
+    
+    # Generate HTML tables for ALL days (not just good days)
+    html_content = table_generation.generate_html_tables(all_results)
+    with open("all_boating_conditions.html", "w") as f:
+        f.write(html_content)
+    print("\nHTML report generated: all_boating_conditions.html")
+    
+    # Try to open the HTML file in the default browser
+    try:
+        import webbrowser
+        import os
+        file_path = os.path.abspath("all_boating_conditions.html")
+        webbrowser.open('file://' + file_path)
+        print(f"Opened HTML report in browser")
+    except Exception as e:
+        print(f"Could not open HTML file automatically. Please open it manually: {e}")
     
     # Print summary to console
     print("\nBoating Conditions Summary:")
@@ -280,13 +296,25 @@ def main():
             if len(data['hourly']) > 3:
                 print(f"    ... and {len(data['hourly']) - 3} more hours")
     
-    # Print good days summary
+    # Print good days summary with time ranges
     if good_days_results:
         print("\n\n=== GOOD BOATING DAYS ===")
         for location_name, good_days in good_days_results.items():
             print(f"\n{location_name}:")
             for date, data in good_days.items():
-                print(f"  {date}: {data['day_rating']} - {data['good_hours_count']} good hours")
+                # Find the time range
+                good_hours = data['hourly']
+                if good_hours:
+                    first_good_hour = good_hours[0]['time']
+                    last_good_hour = good_hours[-1]['time']
+                    time_range = f"{first_good_hour} - {last_good_hour}"
+                    print(f"  {date}: {data['day_rating']} - {len(good_hours)} good hours ({time_range})")
+                else:
+                    print(f"  {date}: {data['day_rating']} - 0 good hours")
+
+def get_current_date():
+    """Return the current date as a formatted string."""
+    return datetime.now().strftime("%Y-%m-%d")
 
 if __name__ == "__main__":
     main() 

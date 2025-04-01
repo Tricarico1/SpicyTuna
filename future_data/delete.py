@@ -2,12 +2,9 @@ import os
 import glob
 
 def cleanup_json_files():
-    """Delete all JSON files in the future_data directory."""
-    # Get the directory where this script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    
-    # Create pattern for JSON files in the future_data directory
-    json_pattern = os.path.join(script_dir, "*.json")
+    """Delete all JSON files in the current directory."""
+    # Find all JSON files in the current directory
+    json_pattern = os.path.join(os.getcwd(), "*.json")
     
     # Find all JSON files
     json_files = glob.glob(json_pattern)
