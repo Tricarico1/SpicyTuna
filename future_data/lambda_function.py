@@ -1,3 +1,7 @@
+"""
+AWS Lambda handler for boating conditions forecast.
+Generates and sends email with HTML tables of forecast.
+"""
 import json
 import boto3
 import os
@@ -13,12 +17,20 @@ sys.path.append('/tmp')  # Lambda needs to write to /tmp directory
 
 # Import our modules directly (no need for future_data package prefix)
 import future
-import delete
 import locations
 import table_generation
 
 def lambda_handler(event, context):
-    """AWS Lambda handler function"""
+    """
+    AWS Lambda entry point. Runs analysis and sends email.
+    
+    Args:
+        event (dict): Lambda event data
+        context (LambdaContext): Lambda context
+        
+    Returns:
+        dict: Response with status code and message
+    """
     try:
         # Ensure we're using /tmp for writable operations
         os.chdir('/tmp')
@@ -47,6 +59,12 @@ def lambda_handler(event, context):
         }
 
 def send_email(html_content):
+    """
+    Send email with forecast using AWS SES.
+    
+    Args:
+        html_content (str): HTML content for email body
+    """
     # Create message container
     msg = MIMEMultipart('alternative')
     
@@ -82,30 +100,30 @@ def send_email(html_content):
     return
 
 # Optional function to save results to S3
-def save_to_s3(all_results, html_content):
-    try:
-        s3 = boto3.client('s3')
-        bucket_name = 'your-bucket-name'  # Replace with your S3 bucket name
+# def save_to_s3(all_results, html_content):
+#     try:
+#         s3 = boto3.client('s3')
+#         bucket_name = 'your-bucket-name'  # Replace with your S3 bucket name
         
-        # Save JSON results
-        s3.put_object(
-            Bucket=bucket_name,
-            Key='all_boating_conditions.json',
-            Body=json.dumps(all_results, indent=2),
-            ContentType='application/json'
-        )
+#         # Save JSON results
+#         s3.put_object(
+#             Bucket=bucket_name,
+#             Key='all_boating_conditions.json',
+#             Body=json.dumps(all_results, indent=2),
+#             ContentType='application/json'
+#         )
         
-        # Save HTML file
-        s3.put_object(
-            Bucket=bucket_name,
-            Key='boating_conditions.html',
-            Body=html_content,
-            ContentType='text/html'
-        )
+#         # Save HTML file
+#         s3.put_object(
+#             Bucket=bucket_name,
+#             Key='boating_conditions.html',
+#             Body=html_content,
+#             ContentType='text/html'
+#         )
         
-        print("Files saved to S3 successfully")
-    except Exception as e:
-        print(f"Error saving to S3: {e}")
+#         print("Files saved to S3 successfully")
+#     except Exception as e:
+#         print(f"Error saving to S3: {e}")
 
 if __name__ == "__main__":
     # For local testing
