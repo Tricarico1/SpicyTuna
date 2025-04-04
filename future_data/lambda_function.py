@@ -42,8 +42,15 @@ def lambda_handler(event, context):
         # Generate HTML table for ALL days and conditions
         html_content = table_generation.generate_html_tables(all_results)
         
-        # Send the email with just the HTML table
-        send_email(html_content)
+        # Get email configuration from environment variables
+        sender_email = os.environ.get('SENDER_EMAIL')
+        recipient_emails_str = os.environ.get('RECIPIENT_EMAILS')
+        
+        # Parse recipient emails (comma-separated list)
+        recipient_emails = [email.strip() for email in recipient_emails_str.split(',')]
+        
+        # Send the email with the HTML table
+        send_email(html_content, sender_email, recipient_emails)
         
         return {
             'statusCode': 200,
@@ -58,12 +65,14 @@ def lambda_handler(event, context):
             'body': json.dumps(f'Error: {str(e)}')
         }
 
-def send_email(html_content):
+def send_email(html_content, sender_email, recipient_emails):
     """
     Send email with forecast using AWS SES.
     
     Args:
         html_content (str): HTML content for email body
+        sender_email (str): Email address to send from
+        recipient_emails (list): List of email addresses to send to
     """
     # Create message container
     msg = MIMEMultipart('alternative')
@@ -72,8 +81,8 @@ def send_email(html_content):
     today = datetime.now().strftime("%m/%d/%Y")
     
     msg['Subject'] = f"Boating Conditions Report - {today}"
-    msg['From'] = 'watershed.berks@gmail.com'
-    msg['To'] = 'nathanieltricarico@gmail.com'
+    msg['From'] = sender_email
+    msg['To'] = ', '.join(recipient_emails)  # Join all recipients with commas
     
     # Attach HTML content to the email
     html_part = MIMEText(html_content, 'html')
@@ -84,13 +93,13 @@ def send_email(html_content):
     
     # Print debug info
     print(f"Sending from: {msg['From']}")
-    print(f"Sending to: {msg['To']}")
+    print(f"Sending to: {', '.join(recipient_emails)}")
     
     # Send the email
     try:
         response = ses.send_raw_email(
             Source=msg['From'],
-            Destinations=[msg['To']],
+            Destinations=recipient_emails,  # List of all recipients
             RawMessage={'Data': msg.as_string()}
         )
         print(f"Email sent! Message ID: {response['MessageId']}")

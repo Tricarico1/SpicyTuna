@@ -1,5 +1,6 @@
 import pandas as pd
 import os
+from datetime import datetime
 
 def export_to_excel(good_days_results, filename="good_boating_days.xlsx"):
     """
@@ -138,7 +139,7 @@ def export_to_excel(good_days_results, filename="good_boating_days.xlsx"):
 def generate_html_tables(all_results):
     """
     Generate HTML tables for email with times in rows and dates in columns.
-    Show all hours (24 hour day) and all condition types with color coding.
+    Merges consecutive hours with the same condition rating vertically.
     
     Args:
         all_results (dict): Dictionary of location names to all boating days data
@@ -153,116 +154,223 @@ def generate_html_tables(all_results):
             border-collapse: collapse;
             margin-bottom: 20px;
             width: 100%;
+            font-family: Arial, sans-serif;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: center;
         }
         th {
             background-color: #f2f2f2;
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: center;
-        }
-        h2 {
-            margin-top: 30px;
-            color: #003366;
+            position: sticky;
+            top: 0;
         }
         .good {
-            background-color: #C6EFCE;
+            background-color: #c8e6c9;  /* light green */
             font-weight: bold;
-        }
-        .great {
-            background-color: #70AD47;
-            font-weight: bold;
-            color: white;
+            border: 2px solid #000000;  /* bold black border */
         }
         .mediocre {
-            background-color: #FFEB9C;
+            background-color: #fff9c4;  /* light yellow */
             font-weight: bold;
+            border: 2px solid #000000;  /* bold black border */
         }
         .bad {
-            background-color: #FFC7CE;
-            color: #9C0006;
+            background-color: #ffcdd2;  /* light red */
+            font-weight: bold;
+            border: 2px solid #000000;  /* bold black border */
+        }
+        .location-header {
+            background-color: #2196F3;
+            color: white;
+            font-size: 1.2em;
+            padding: 10px;
+            text-align: center;
+            margin-top: 20px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .hour-cell {
+            font-weight: bold;
+            background-color: #e0e0e0;
+        }
+        h1 {
+            color: #2196F3;
+            text-align: center;
+        }
+        .date-header {
+            background-color: #e1f5fe;
+            font-weight: bold;
+        }
+        .weekday {
+            font-size: 0.8em;
+            color: #555;
+        }
+        .hour-count {
+            font-size: 0.8em;
+            margin-top: 4px;
         }
     </style>
     """
-    
-    # Start HTML content
+
+    # Start HTML document
     html = f"""
     <!DOCTYPE html>
     <html>
     <head>
+        <title>Boating Conditions Forecast</title>
         {styles}
     </head>
     <body>
-        <h1>Boating Conditions Report</h1>
+        <h1>Boating Conditions Forecast</h1>
     """
-    
-    # Process each location
-    for location_name, days_data in all_results.items():
-        if not days_data:
-            continue
-            
-        html += f"<h2>{location_name}</h2>"
+
+    # For each location
+    for location_name, location_results in all_results.items():
+        # Add location header
+        html += f"<div class='location-header'>{location_name}</div>"
         
-        # Get all unique dates
-        all_dates = sorted(days_data.keys())
-        
-        if not all_dates:
-            html += "<p>No data found.</p>"
-            continue
-            
-        # Create the table
+        # Create a table for this location
         html += "<table>"
         
-        # Header row with dates in MM-DD-YYYY format
-        html += "<tr><th>Time</th>"
-        for date in all_dates:
-            # Convert date from YYYY-MM-DD to MM-DD-YYYY
-            parts = date.split('-')
-            formatted_date = f"{parts[1]}-{parts[2]}-{parts[0]}"
-            html += f"<th>{formatted_date}</th>"
+        # Get all dates for columns
+        dates = sorted(location_results.keys())
+        
+        if not dates:
+            html += "<tr><td>No data available for this location.</td></tr></table>"
+            continue
+        
+        # Add header row with dates and weekdays
+        html += "<tr><th>Hour</th>"
+        for date in dates:
+            # Format date from YYYY-MM-DD to MM/DD
+            formatted_date = f"{date[5:7]}/{date[8:10]}"
+            
+            # Get day of week
+            date_obj = datetime.strptime(date, "%Y-%m-%d")
+            weekday = date_obj.strftime("%A")
+            
+            html += f"<th class='date-header'>{formatted_date}<br><span class='weekday'>{weekday}</span></th>"
         html += "</tr>"
         
-        # Create a lookup for quick access to data
-        data_lookup = {}
-        for date, date_data in days_data.items():
-            for hour in date_data['hourly']:
-                key = (date, hour['time'])
-                data_lookup[key] = {
-                    'rating': hour['rating'],
-                    'day_rating': date_data['day_rating']
-                }
+        # Pre-process to find vertical blocks for each date
+        date_blocks = {}
         
-        # Add rows for each hour (0-23)
-        for hour in range(24):
-            time_str = f"{hour:02d}:00"
-            html += f"<tr><td><b>{time_str}</b></td>"
+        for date in dates:
+            if date not in location_results:
+                date_blocks[date] = []
+                continue
+                
+            # Get all hourly data sorted by time
+            hourly_data = sorted(
+                location_results[date].get('hourly', []),
+                key=lambda x: x['time']
+            )
             
-            for date in all_dates:
-                key = (date, time_str)
-                if key in data_lookup:
-                    data = data_lookup[key]
-                    rating = data['rating']
+            if not hourly_data:
+                date_blocks[date] = []
+                continue
+                
+            # Find blocks of consecutive hours with the same rating
+            blocks = []
+            current_block = {
+                'rating': hourly_data[0]['rating'],
+                'start_hour': hourly_data[0]['time'],
+                'end_hour': hourly_data[0]['time'],
+                'count': 1
+            }
+            
+            for i in range(1, len(hourly_data)):
+                current_hour = hourly_data[i]
+                prev_hour = hourly_data[i-1]
+                
+                # Check if current hour is consecutive to previous hour and has same rating
+                prev_hour_int = int(prev_hour['time'].split(':')[0])
+                curr_hour_int = int(current_hour['time'].split(':')[0])
+                
+                if curr_hour_int == prev_hour_int + 1 and current_hour['rating'] == current_block['rating']:
+                    # Extend the current block
+                    current_block['end_hour'] = current_hour['time']
+                    current_block['count'] += 1
+                else:
+                    # End current block and start a new one
+                    blocks.append(current_block)
+                    current_block = {
+                        'rating': current_hour['rating'],
+                        'start_hour': current_hour['time'],
+                        'end_hour': current_hour['time'],
+                        'count': 1
+                    }
+            
+            # Add the last block
+            blocks.append(current_block)
+            date_blocks[date] = blocks
+        
+        # Get all possible hours (00:00 to 23:00)
+        all_hours = [f"{h:02d}:00" for h in range(24)]
+        
+        # Build the table row by row
+        for hour_idx, hour in enumerate(all_hours):
+            html += f"<tr><td class='hour-cell'>{hour}</td>"
+            
+            # Process each date column
+            for date in dates:
+                # Find if this hour is the start of a block
+                is_start_of_block = False
+                matching_block = None
+                
+                for block in date_blocks.get(date, []):
+                    if block['start_hour'] == hour:
+                        is_start_of_block = True
+                        matching_block = block
+                        break
+                
+                # Check if this hour is in the middle of a block (should be skipped)
+                is_in_middle_of_block = False
+                if not is_start_of_block:
+                    for block in date_blocks.get(date, []):
+                        start_hour_int = int(block['start_hour'].split(':')[0])
+                        end_hour_int = int(block['end_hour'].split(':')[0])
+                        current_hour_int = int(hour.split(':')[0])
+                        
+                        if start_hour_int < current_hour_int <= end_hour_int:
+                            is_in_middle_of_block = True
+                            break
+                
+                # Skip if in middle of block (already covered by rowspan)
+                if is_in_middle_of_block:
+                    continue
+                
+                # If start of block, create cell with rowspan
+                if is_start_of_block and matching_block:
+                    rating = matching_block['rating']
+                    rowspan = matching_block['count']
                     
-                    # Determine CSS class based on rating
+                    # Set CSS class based on rating
                     if rating == "GOOD":
                         css_class = "good"
-                    elif rating == "GREAT":
-                        css_class = "great"
+                        # For GOOD ratings, display the hour count
+                        cell_content = f"{rating}<br><span class='hour-count'>{rowspan} hr</span>"
                     elif rating == "MEDIOCRE":
                         css_class = "mediocre"
+                        cell_content = rating
                     else:  # BAD
                         css_class = "bad"
-                        
-                    html += f"<td class='{css_class}'>{rating}</td>"
-                else:
-                    html += "<td></td>"  # Empty cell if no data
+                        cell_content = rating
                     
-            html += "</tr>"
+                    # Add cell with appropriate rowspan
+                    html += f"<td class='{css_class}' rowspan='{rowspan}'>{cell_content}</td>"
+                else:
+                    # If no block starts here and not in middle of block, add empty cell
+                    html += "<td></td>"
             
+            html += "</tr>"
+        
         html += "</table>"
     
     html += """
