@@ -1,3 +1,7 @@
+aws configure
+Your AWS Access Key ID
+Your AWS Secret Access Key
+
 # Set your account ID and region explicitly
 export AWS_ACCOUNT_ID=805358684705
 export AWS_REGION=us-east-1
